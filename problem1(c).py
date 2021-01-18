@@ -4,8 +4,8 @@ from itertools import combinations
 import matplotlib.pyplot as plt
 import math
 
-def get_Coefficient(X, Y, lamda):
-    return np.linalg.inv((X.T @ X) + lamda * np.eye(2)) @ X.T @ Y
+def get_Coefficient(X, Y, Lambda):
+    return np.linalg.inv((X.T @ X) + Lambda * np.eye(2)) @ X.T @ Y
 
 def get_Std_err(X, Y, Y_pred, n, p): # HW1 1.(a)
     sigma_hat = (1/(n-p-1))*sum((Y-Y_pred)**2)
@@ -25,9 +25,9 @@ def Rsquare(Y, Y_pred):
     return 1-(RSS/TSS)
 
 if __name__ == '__main__':
-    lamda_list = [10**-5, 10**-4.5, 10**-4, 10**-3.5, 10**-3, 10**-2.5, 10**-2, 10**-1.5, 10**-1, 10**-0.5, 10**0, 10**0.5, 10**1, 10**1.5, 10**2, 10**2.5, 10**3]
+    Lambda_list = [10**-5, 10**-4.5, 10**-4, 10**-3.5, 10**-3, 10**-2.5, 10**-2, 10**-1.5, 10**-1, 10**-0.5, 10**0, 10**0.5, 10**1, 10**1.5, 10**2, 10**2.5, 10**3]
     CV_list = []
-    lamda_feature_coeff_dict = {}
+    Lambda_feature_coeff_dict = {}
     RSE_list = []
     Rsquare_list = []
 
@@ -68,8 +68,8 @@ if __name__ == '__main__':
 
     comb = list(combinations([1, 2, 3, 4, 5, 6], 2))
     feature_list = ['seafood', 'meat', 'offals', 'spices', 'vegetables', 'obesity']
-    for lamda in lamda_list:
-        print('lamda = %f:' % lamda)
+    for Lambda in Lambda_list:
+        print('Lambda = %f:' % Lambda)
         Centered_X_list = []
         RSS = []
         Coefficient_list = []
@@ -93,11 +93,11 @@ if __name__ == '__main__':
             Centered_Y = Y - np.mean(Y) #centered Y
             Centered_X = X - np.mean(X, 0) #centered X
             Centered_X_list.append(Centered_X)
-            Coefficient = get_Coefficient(Centered_X, Centered_Y, lamda)
+            Coefficient = get_Coefficient(Centered_X, Centered_Y, Lambda)
             Coefficient_list.append(Coefficient)
             Y_pred = Centered_X @ Coefficient
             Y_pred_list.append(Y_pred)
-            RSS.append(sum((Centered_Y-Y_pred)**2))
+            RSS.append(sum((Centered_Y-Y_pred)**2) + Lambda * sum(Coefficient**2))
         #print(RSS)
         target_index = np.argmin(RSS)
         Centered_X = Centered_X_list[target_index]
@@ -105,10 +105,10 @@ if __name__ == '__main__':
         target_predictor = comb[target_index]
         print('feature 1 is %s (X%d)' %(feature_list[target_predictor[0]-1], target_predictor[0]))
         print('feature 2 is %s (X%d)' %(feature_list[target_predictor[1]-1], target_predictor[1]))
-        Coefficient = get_Coefficient(Centered_X, Centered_Y, lamda)
+        Coefficient = get_Coefficient(Centered_X, Centered_Y, Lambda)
         print('Coefficient of X%d:\t%f' % (target_predictor[0], Coefficient[0]))
         print('Coefficient of X%d:\t%f' % (target_predictor[1], Coefficient[1]))
-        lamda_feature_coeff_dict[lamda] = [(feature_list[target_predictor[0]-1]+'(X'+str(target_predictor[0])+')', feature_list[target_predictor[1]-1]+ '(X'+str(target_predictor[1])+')'), (Coefficient[0], Coefficient[1])]
+        Lambda_feature_coeff_dict[Lambda] = [(feature_list[target_predictor[0]-1]+'(X'+str(target_predictor[0])+')', feature_list[target_predictor[1]-1]+ '(X'+str(target_predictor[1])+')'), (Coefficient[0], Coefficient[1])]
         RSE_list.append(float(RSE(Centered_Y, Y_pred, n = 160, p = 2)))
         Rsquare_list.append(float(Rsquare(Centered_Y, Y_pred)))
         
@@ -164,25 +164,25 @@ if __name__ == '__main__':
                 test_y = Y_fold5
             train_y = train_y - np.mean(train_y) #centered Y
             train_x = train_x - np.mean(train_x, 0) #centered X
-            Coeff = get_Coefficient(train_x, train_y, lamda)
+            Coeff = get_Coefficient(train_x, train_y, Lambda)
             Y_pred = (test_x - np.mean(test_x, 0)) @ Coeff
             MSE_total = MSE_total + ( (sum(((test_y - np.mean(test_y))-Y_pred)**2))/32 )
         CV_list.append(float(MSE_total/5))
         print('############################################################')
     
     min_CVerr_index = CV_list.index(min(CV_list))# 最小值的索引
-    print('當lamda = %f時，Cross-Validation Error最小' % lamda_list[min_CVerr_index])
-    print('Feature1為%s' % lamda_feature_coeff_dict[lamda_list[min_CVerr_index]][0][0])
-    print('Feature2為%s' % lamda_feature_coeff_dict[lamda_list[min_CVerr_index]][0][1])
-    print('Coefficient of Feature1:%f' % lamda_feature_coeff_dict[lamda_list[min_CVerr_index]][1][0])
-    print('Coefficient of Feature2:%f' % lamda_feature_coeff_dict[lamda_list[min_CVerr_index]][1][1])
+    print('當Lambda = %f時，Cross-Validation Error最小' % Lambda_list[min_CVerr_index])
+    print('Feature1為%s' % Lambda_feature_coeff_dict[Lambda_list[min_CVerr_index]][0][0])
+    print('Feature2為%s' % Lambda_feature_coeff_dict[Lambda_list[min_CVerr_index]][0][1])
+    print('Coefficient of Feature1:%f' % Lambda_feature_coeff_dict[Lambda_list[min_CVerr_index]][1][0])
+    print('Coefficient of Feature2:%f' % Lambda_feature_coeff_dict[Lambda_list[min_CVerr_index]][1][1])
     print('RSE:', RSE_list[min_CVerr_index])
     print('R^2:', Rsquare_list[min_CVerr_index])
-    #print(lamda_feature_coeff_dict[lamda_list[min_CVerr_index]])
-    for i in range(0, len(lamda_list), 1): # lamda in log-scale
-        lamda_list[i] = math.log(lamda_list[i], 10)
-    plt.plot(lamda_list, CV_list)
-    plt.xlabel('lamda in log-scale')
+    #print(Lambda_feature_coeff_dict[Lambda_list[min_CVerr_index]])
+    for i in range(0, len(Lambda_list), 1): # Lambda in log-scale
+        Lambda_list[i] = math.log(Lambda_list[i], 10)
+    plt.plot(Lambda_list, CV_list)
+    plt.xlabel('Lambda in log-scale')
     plt.ylabel('Cross-Validation Error')
     plt.show()
     
